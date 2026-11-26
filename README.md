@@ -1,5 +1,7 @@
 # Zero-sum triples in {±1,…,±m} ∖ {±b}
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24569671.svg)](https://doi.org/10.5281/zenodo.24569671)
+
 Lean 4 / Mathlib formalization and supporting code for the note
 *"Zero-sum triples in {±1,…,±m} ∖ {±b}: the case 3 | b"* (Marcos Cerrato, 2026; source in `paper/`).
 

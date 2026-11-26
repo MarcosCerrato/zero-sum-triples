@@ -1,0 +1,9 @@
+{
+  "title": "Zero-sum triples in {±1,…,±m}∖{±b}: the case 3 | b (note, Lean 4 formalization and verification code)",
+  "upload_type": "software",
+  "creators": [{"name": "Cerrato, Marcos", "affiliation": "Independent researcher"}],
+  "description": "Lemma B: for m ≡ 1 (mod 3) and 1 ≤ b ≤ m, {±1,…,±m}∖{±b} can be partitioned into zero-sum triples, except (m,b) ∈ {(4,1),(4,3),(7,1)}. The new case is 3 | b. The statement for m ≥ 10 is formally verified in Lean 4/Mathlib (theorem LemaB.lemmaB, standard axioms only). Includes the note (LaTeX/PDF), the Lean development and an independent Python verifier. Produced with substantial AI assistance (Claude, Anthropic); see the note.",
+  "license": "MIT",
+  "keywords": ["zero-sum triples", "Skolem sequences", "Langford sequences", "Lean 4", "formal verification", "combinatorics"],
+  "related_identifiers": [{"identifier": "https://github.com/JD-Jones-ASES/gn-lean", "relation": "isDerivedFrom", "scheme": "url"}]
+}

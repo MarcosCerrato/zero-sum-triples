@@ -1,0 +1,228 @@
+\documentclass[11pt]{amsart}
+\usepackage[T1]{fontenc}
+\usepackage{amssymb}
+\usepackage[margin=1.1in]{geometry}
+\usepackage{xurl}
+\usepackage{hyperref}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\fname}[1]{\textsf{#1}}
+\newenvironment{family}[2]{\par\medskip\noindent\begin{minipage}{\linewidth}\raggedright
+  \textbf{\fname{#1}}\quad #2\par\smallskip}{\end{minipage}\par}
+\newcommand{\famrow}[2]{\par\noindent\hangindent=2.6em\hangafter=1\makebox[2.6em][l]{#1}#2\par}
+\newcommand{\Icc}[2]{[#1..#2]}
+
+\title[Zero-sum triples in $\{\pm1,\dots,\pm m\}\setminus\{\pm b\}$]{Zero-sum triples in
+$\{\pm1,\dots,\pm m\}\setminus\{\pm b\}$: the case $3\mid b$}
+\author{Marcos Cerrato}
+\address{Independent researcher}
+% TODO (autor): \email{...} si se quiere un contacto.
+\date{November 26, 2026}
+
+\begin{document}
+
+\begin{abstract}
+For $m\equiv 1\pmod 3$ and $b\in[1..m]$, we ask whether $\{\pm1,\dots,\pm m\}\setminus\{\pm b\}$ can be
+partitioned into triples with zero sum. When the sum of $[1..m]\setminus\{b\}$ is even this follows from
+classical results on (near-, extended) Skolem sequences, and when $3\nmid b$ it follows from a $3$-adic transfer
+to Skolem-type permutations. We settle the remaining case $3\mid b$, in both parities, by a new recursive
+construction: a $3$-adic transfer in which the multiples of $3$ carry a smaller instance of the same problem,
+and the rest is filled by an explicit ``$X$-system'' that does not depend on $b$. Seventeen explicit affine families
+of $X$-systems suffice. The complete statement, including the case $3\nmid b$ (via an adapted copy of an
+existing Lean development of the $3$-adic transfer), has been formally verified in Lean~4 with Mathlib.
+\end{abstract}
+
+\maketitle
+
+\section{Introduction}
+
+Throughout, $\Icc{a}{b}=\{a,a+1,\dots,b\}\subset\Z$. For $m\equiv1\pmod 3$ and $1\le b\le m$ consider
+
+\smallskip
+\noindent\textbf{Lemma B$(m,b)$.} \emph{The set $\{\pm1,\dots,\pm m\}\setminus\{\pm b\}$ can be partitioned into
+triples with sum $0$.}
+\smallskip
+
+Equivalently, $\Icc{-m}{m}$ can be partitioned into zero-sum triples one of which is $\{-b,0,b\}$. (When
+$3\nmid b$ the $3$-adic transfer below turns this into a $3\times(2k+1)$ Kotzig array with a prescribed column,
+$m=3k+1$; for $3\mid b$ no such reformulation is available, since $\{-b,0,b\}$ consists of multiples of $3$.)
+The statement arises in the study of partitions of $[n]$ into blocks of size at most $3$ whose sums are powers of
+$3$ (Gurvich--Naumova \cite{GN}): their Lemma~1, applied to $[-\ell..\ell]$ with $\ell=m-1\equiv0\pmod 3$, is the
+case $b=m$, and a reduction of their Conjecture~1 to
+Lemma~B for all $b$ was one of our motivations. (That conjecture has since been proved by other means, with a Lean formalization \cite{Jo}.)
+
+\emph{Known cases.} Doubling a partition of $[1..m]\setminus\{b\}$ into triples $\{x,y,x+y\}$ gives Lemma B;
+such partitions exist in the ``good parity'' case where $\sum([1..m]\setminus\{b\})$ is even, by the
+existence of near-Skolem sequences (Shalaby \cite{Sh}) and extended Skolem sequences (Baker \cite{Ba}).
+For $3\nmid b$, a $3$-adic transfer reduces Lemma~B to the existence of a permutation $\sigma$ of $\Icc{-k}{k}$
+with a prescribed fixed point whose displacements $\sigma(x)-x$ run over $\Icc{-k}{k}$. Such permutations are
+constructed from Langford-type sequences, using hooked extended Langford sequences of Mor and Linek \cite{ML};
+this case has been formalized in Lean in the repository \cite{Jo}, which we reuse in Section~\ref{sec:lean}.
+In the ``bad parity'' case with $3\mid b$, to our knowledge, no construction was available in general: arguments
+based on signed Langford sequences \cite{BJ,JM} or on extended Langford sequences of large defect \cite{LM} only
+cover $b$ small or large compared with $m$, and in particular not the range $b/m\in(1/7,1/3)$.
+
+\begin{theorem}\label{thm:main}
+Lemma B$(m,b)$ holds for every $m\equiv1\pmod3$ with $m\ge10$ and every $b\in\Icc{1}{m}$ with $3\mid b$.
+Consequently, together with the case $3\nmid b$, Lemma B$(m,b)$ holds for all $m\equiv 1\pmod 3$ and all
+$b\in\Icc1m$ except $(m,b)\in\{(4,1),(4,3),(7,1)\}$.
+\end{theorem}
+
+The proof is constructive and makes no use of parity. Section~\ref{sec:transfer} gives the transfer lemma,
+Section~\ref{sec:runs} the tool used to build triples of sum $-1$, Section~\ref{sec:families} the explicit families,
+and Section~\ref{sec:proof} the induction. Section~\ref{sec:lean} describes the Lean formalization.
+
+\section{The transfer lemma}\label{sec:transfer}
+
+Write $m=3k+1$ and $b=3c$. Every integer in $\Icc{-m}{m}$ is uniquely $3q$, $3x+1$ or $-3y-1$ with
+$q,x,y\in\Icc{-k}{k}$. A zero-sum triple has residues $(0,0,0)$, $(1,1,1)$, $(2,2,2)$ or $(0,1,2)$.
+
+\begin{definition}
+Let $E\subseteq\Icc{-k}{k}$. An \emph{$X$-system} for $(k,E)$ consists of sets $A,B\subseteq\Icc{-k}{k}$, a bijection
+$\sigma:A\to B$ such that $x\mapsto\sigma(x)-x$ is a bijection $A\to E$, and partitions of
+$X_1=\Icc{-k}{k}\setminus A$ and of $X_2=\Icc{-k}{k}\setminus B$ into triples with sum $-1$.
+\end{definition}
+
+\begin{lemma}[Transfer]\label{lem:transfer}
+Let $\Icc{-k}{k}=S_0\sqcup E$, let $S_0$ be partitioned into zero-sum triples including $\{-c,0,c\}$, and let an
+$X$-system for $(k,E)$ be given. Then the following triples partition $\Icc{-m}{m}$ into zero-sum triples and
+include $\{-b,0,b\}$:
+$3\tau$ for each triple $\tau$ of $S_0$; $\{3x+1:x\in\tau\}$ for each triple $\tau$ of $X_1$;
+$\{-3y-1:y\in\tau\}$ for each triple $\tau$ of $X_2$; and $\{3(\sigma(x)-x),\,3x+1,\,-3\sigma(x)-1\}$ for $x\in A$.
+\end{lemma}
+
+\begin{proof}
+Sums: $3\cdot0$, $3(-1)+3$, $-3(-1)-3$ and $3\sigma(x)-3x+3x+1-3\sigma(x)-1$ all vanish. The residue-$0$ elements used
+are $3(S_0\cup E)$, the residue-$1$ elements $3(X_1\cup A)+1$, the residue-$2$ elements $-3(X_2\cup B)-1$, each
+exactly once by the bijectivity hypotheses.
+\end{proof}
+
+The $X$-system depends only on $k$ and $E$, not on $c$. We use two choices of $S_0$. Let $r=1,2,3$ according as
+$k\equiv 2,0,1\pmod 3$.
+
+\begin{itemize}
+\item \emph{Main case} ($c\le k-r$): $S_0=\Icc{-j}{j}$ with $j=k-r\equiv1\pmod 3$, so the required partition of
+$S_0$ is exactly Lemma B$(j,c)$, a smaller instance (of any residue and parity). Here $E=\pm\Icc{j+1}{k}$.
+\item \emph{Top case} ($c>k-r$, i.e.\ $b\in\{m-1,m-4,m-7\}$): $S_0=\Icc{-n}{n}\cup\{\pm c\}$ with
+$n=k-r-1\equiv0\pmod3$; the partition is $\{-c,0,c\}$ together with a partition of $\{\pm1,\dots,\pm n\}$ into
+zero-sum triples, i.e.\ Lemma B$(n+1,n+1)$ (the case $b=m$, \cite[Lemma~1]{GN}). Here
+$E=\pm(\Icc{n+1}{k}\setminus\{c\})$.
+\end{itemize}
+
+\section{Runs}\label{sec:runs}
+
+A \emph{run} $(x_0,y_0,L)$ is the family of triples $\{x_0+i,\;y_0+i,\;-1-x_0-y_0-2i\}$, $0\le i<L$, each of sum
+$-1$. All our partitions of $X_1,X_2$ are unions of runs.
+
+\begin{lemma}\label{lem:runs}
+Let $R_1,\dots,R_p$ be runs and $X$ a finite set. If all elements of all triples of the runs lie in $X$, are pairwise
+distinct, and their number is $|X|$, then the triples partition $X$.
+\end{lemma}
+
+The proof is immediate. In each family below the hypotheses are linear (in)equalities in a parameter $w$.
+
+\begin{remark}
+A useful special case: $\Icc{0}{4v+1}$ is the disjoint union of pairs with sums exactly $\Icc{3v+1}{5v+1}$, namely
+$(x,3v+1+x)$ for $0\le x\le v$ and $(v+1+i,2v+1+i)$ for $0\le i<v$. This gives the $X_1$ side of several
+families.
+\end{remark}
+
+\section{The seventeen families}\label{sec:families}
+
+We write $u=\lfloor k/3\rfloor$ and $u=2w+\rho$ (or $u=w$ when the parity of $u$ is irrelevant); the tables
+below are written directly in terms of $w$, and all data are affine in $w$ with integer coefficients. We write
+$D\subset\Icc1k$ for the positive displacements, so that $E=D\cup(-D)$. In each family, $\sigma$ is listed as $a\mapsto\sigma(a)$ over $A$, and
+$X_1$, $X_2$ as lists of runs $(x_0,y_0,L)$. In all cases the hypotheses of Lemma~\ref{lem:runs}, and the
+bijectivity of $\sigma$ and of $x\mapsto\sigma(x)-x$ onto $E$, are linear statements in $w$ that hold for all
+$w\ge w_0$; they have been verified in Lean (Section~\ref{sec:lean}).
+
+\input{families.tex}
+
+\section{Proof of Theorem~\ref{thm:main}}\label{sec:proof}
+
+By strong induction on $m$. For $10\le m<46$ and all $b$, and for $(m,b)=(55,54)$, explicit partitions were
+found by computer search and are checked in Lean as certificates (Section~\ref{sec:lean}). (For $m\le 7$ an
+exhaustive search confirms the three exceptions $(4,1),(4,3),(7,1)$.) Let $m\ge46$, so $k\ge15$, and $b=3c$, $(m,b)\ne(55,54)$. Then $k\bmod6$ determines the
+family:
+
+\begin{itemize}
+\item $k\equiv2\pmod 3$: main case \fname{F2}; top case $c=k$: \fname{F2e\_top\_k} ($k\equiv2\bmod6$) or \fname{F2o\_top\_k} ($k\equiv5\bmod6$).
+\item $k\equiv0\pmod6$: \fname{F0e}; top cases \fname{F0e\_top\_km1}, \fname{F0e\_top\_k} (the latter needs $w\ge4$, which excludes only $k=18$, i.e.\ $(55,54)$).
+\item $k\equiv3\pmod6$: \fname{F0o}; top cases \fname{F0o\_top\_km1}, \fname{F0o\_top\_k}.
+\item $k\equiv1\pmod6$: \fname{F1e}; top cases \fname{F1e\_top\_km2}, \fname{F1e\_top\_km1}, \fname{F1e\_top\_k}.
+\item $k\equiv4\pmod6$: \fname{F1o}; top cases \fname{F1o\_top\_km2}, \fname{F1o\_top\_km1}, \fname{F1o\_top\_k}.
+\end{itemize}
+
+In the main case the inner instance Lemma B$(j,c)$ has $10\le j<m$ and holds by induction (if $3\mid c$) or by the
+case $3\nmid b$. In the top case Lemma B$(n+1,n+1)$ has $3\nmid n+1$. Lemma~\ref{lem:transfer} completes the step.
+\qed
+
+\section{Formal verification}\label{sec:lean}
+
+The Lean~4/Mathlib development (files \texttt{Transfer}, \texttt{Runs}, \texttt{Builder}, \texttt{Families},
+\texttt{Cert}, \texttt{Small}, \texttt{Main}, \texttt{Final}) proves
+\[
+\begin{aligned}
+&\texttt{LemaB.lemmaB\_of\_not\_dvd}:\\
+&\qquad(\text{Lemma B for }3\nmid b)\ \Longrightarrow\ \forall m\equiv1\ (3),\ m\ge10,\
+\forall b\in\Icc1m,\ \text{Lemma B}(m,b).
+\end{aligned}
+\]
+The families are generated from the data of Section~\ref{sec:families} by a script,
+and each of their conditions is discharged by \texttt{omega}; the small cases $10\le m<46$ and $(55,54)$ are
+checked inside Lean by \texttt{decide} on explicit certificates.
+
+The hypothesis $3\nmid b$ is discharged by an adapted copy (MIT license) of the development \cite{Jo}, which
+constructs the displacement permutations of Section~\ref{sec:transfer} for every prescribed fixed point from
+Langford-type sequences and verifies the resulting zero-sum partition. The file \texttt{Unconditional} combines
+the two parts into
+\[
+\texttt{LemaB.lemmaB}:\ \forall m\equiv1\ (3),\ m\ge10,\ \forall b\in\Icc1m,\ \text{Lemma B}(m,b),
+\]
+which depends only on the axioms \texttt{propext}, \texttt{Classical.choice}, \texttt{Quot.sound}
+(no \texttt{sorry}, no \texttt{native\_decide}, no additional axioms). In particular Theorem~\ref{thm:main},
+including the case $3\nmid b$, is machine-checked for all $m\ge10$; the exceptions for $m\le7$ rest on the
+exhaustive search.
+
+The Lean development, the scripts that generate the families, the certificates and this text, and an
+independent Python verifier are available at \url{https://github.com/MarcosCerrto/zero-sum-triples}.
+
+\section*{Use of AI assistance}
+
+The search for the $X$-system families, the Lean formalization and the drafting of this note were carried out
+with substantial assistance from an AI system (Claude, Anthropic). The author is responsible for the
+content; correctness of the main theorem for $m\ge10$ is certified by the Lean proof described
+above, which does not depend on trusting either the author or the AI. The reused development \cite{Jo} also
+declares that it was largely generated by AI agents and has not been independently reviewed by experts; the
+parts used here are likewise checked by Lean.
+
+\begin{thebibliography}{99}
+\bibitem{Ba} C.~A. Baker, \emph{Extended Skolem sequences}, J. Combin. Des. \textbf{3} (1995), no.~5, 363--379,
+\href{https://doi.org/10.1002/jcd.3180030507}{doi:10.1002/jcd.3180030507}.
+\bibitem{BJ} N.~Brown and H.~Jordon, \emph{Signed Langford sequences and directed cyclic cycle systems},
+Australas. J. Combin. \textbf{79} (2021), no.~2, 234--249.
+\bibitem{GN} V.~Gurvich and M.~Naumova, \emph{Partitioning set $[n]=\{1,\dots,n\}$ into subsets of size at most
+$m$ such that all sums are powers of $m$}, arXiv:2508.00946v3, 2026.
+\bibitem{JM} H.~Jordon and L.~Mitchell, \emph{Signed Langford sequences}, Discrete Math. \textbf{345} (2022),
+no.~3, 112719, \href{https://doi.org/10.1016/j.disc.2021.112719}{doi:10.1016/j.disc.2021.112719}.
+\bibitem{Jo} JD Jones, \emph{gn-lean: Lean~4 formalization of the Gurvich--Naumova ternary partition theorem},
+GitHub repository, commit \texttt{73bb87b}, 2026, \url{https://github.com/JD-Jones-ASES/gn-lean}.
+\bibitem{LJ} V.~Linek and Z.~Jiang, \emph{Extended Langford sequences with small defects}, J. Combin. Theory
+Ser. A \textbf{84} (1998), no.~1, 38--54, \href{https://doi.org/10.1006/jcta.1998.2877}{doi:10.1006/jcta.1998.2877}.
+\bibitem{LM} V.~Linek and S.~Mor, \emph{On partitions of $\{1,\dots,2m+1\}\setminus\{k\}$ into differences
+$d,\dots,d+m-1$: extended Langford sequences of large defect}, J. Combin. Des. \textbf{12} (2004), no.~6, 421--442,
+\href{https://doi.org/10.1002/jcd.20001}{doi:10.1002/jcd.20001}.
+\bibitem{ML} S.~Mor and V.~Linek, \emph{Hooked extended Langford sequences of small and large defects},
+Math. Slovaca \textbf{64} (2014), no.~4, 819--842, \href{https://doi.org/10.2478/s12175-014-0242-6}{doi:10.2478/s12175-014-0242-6}.
+\bibitem{Sh} N.~Shalaby, \emph{The existence of near-Skolem and hooked near-Skolem sequences}, Discrete Math.
+\textbf{135} (1994), no.~1--3, 303--319, \href{https://doi.org/10.1016/0012-365X(92)00327-N}{doi:10.1016/0012-365X(92)00327-N}.
+\end{thebibliography}
+
+\end{document}

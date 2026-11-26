@@ -1,0 +1,16 @@
+name = "lemmab"
+version = "1.0.0"
+defaultTargets = ["LemmaB"]
+
+[leanOptions]
+pp.unicode.fun = true
+relaxedAutoImplicit = false
+maxSynthPendingDepth = 3
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+rev = "v4.37.0-rc1"
+
+[[lean_lib]]
+name = "LemmaB"
